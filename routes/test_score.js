@@ -1,20 +1,22 @@
 const express = require("express");
-const { getCandidateById, getCandidate } = require("../controllers/candidate");
-const {
-  setScoreRoundOne,
-  setScoreRoundTwo,
-  setScoreRoundThree,
-  getTestSummery,
-} = require("../controllers/test_score");
+const { setScore, getTestSummery } = require("../controllers/test_score");
+const { check } = require("express-validator");
 
 const router = express.Router();
 
 // Params
-router.param("candidateId", getCandidateById);
 
-router.post("/score/insert/roundone/", setScoreRoundOne);
-router.post("/score/insert/roundtwo/:candidateId", setScoreRoundTwo);
-router.post("/score/insert/roundthree/:candidateId", setScoreRoundThree);
+router.post(
+  "/score/insert",
+  [
+    check("round", "Round should be specified as (one, two, three)")
+      .isString()
+      .not()
+      .isEmpty(),
+  ],
+  setScore
+);
+
 router.get("/testsummery", getTestSummery);
 
 module.exports = router;

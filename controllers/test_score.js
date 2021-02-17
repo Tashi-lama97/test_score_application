@@ -1,89 +1,85 @@
 const TestScore = require("../models/test_score");
-const { check, validationResult } = require("express-validator");
+const { validationResult } = require("express-validator");
 
-exports.setScoreRoundOne = (req, res) => {
-  TestScore.findOne({ candidate: req.body.candidate }).exec(
-    (error, testScore) => {
-      if (testScore) {
-        res.status(409).json({
-          error: "Scores already given to the candidate",
-        });
-      } else {
-        const newTestScore = new TestScore(req.body);
-        newTestScore.save((error, score) => {
-          if (error) {
-            res.status(400).json({
-              error: error,
-            });
-          }
-          res.status(200).json({
-            score,
-          });
-        });
-      }
-    }
-  );
-};
+exports.setScore = (req, res) => {
+  const error = validationResult(req);
+  if (!error.isEmpty()) {
+    res.status(400).json(error);
+  }
+  const round = req.body.round.toLowerCase().trim();
+  const id = req.body.candidateId;
 
-exports.setScoreRoundTwo = (req, res) => {
-  TestScore.findOne({ candidate: req.candidate._id }).exec(
-    (error, testScore) => {
-      if (error || !testScore) {
-        res.status(404).json({
-          error: "Unable to fine Test Score for the candidate",
-        });
-      }
-      if (testScore.round_two_score) {
-        res.status(409).json({
-          error: "Test Score for Round two is already Given",
-        });
-      } else {
-        testScore.round_two_score = req.body.round_two;
-        testScore.total_score += req.body.round_two;
-        testScore.save((error, score) => {
-          if (error) {
-            res.status(400).json({
-              error: "Unable to insert score for second round",
-            });
-          }
-          res.status(200).json({
-            score: score.round_two_score,
-            candidate: score.candidate,
+  switch (round) {
+    case "one":
+      let data = {
+        candidate: req.body.candidateId,
+        round_one_score: req.body.score,
+        total_score: req.body.score,
+      };
+      const testScore = new TestScore(data);
+      testScore.save((error, data) => {
+        if (error) {
+          return res.status(400).json({
+            message: "Unable to set score",
           });
+        }
+        return res.status(200).json({
+          message: "Score added Successfully",
         });
-      }
-    }
-  );
-};
-exports.setScoreRoundThree = (req, res) => {
-  TestScore.findOne({ candidate: req.candidate._id }).exec(
-    (error, testScore) => {
-      if (error || !testScore) {
-        res.status(404).json({
-          error: "Unable to fine Test Score for the candidate",
-        });
-      }
-      if (testScore.round_three_score) {
-        res.status(409).json({
-          error: "Test Score for Round three is already Given",
-        });
-      } else {
-        testScore.round_three_score = req.body.round_three;
-        testScore.total_score += req.body.round_three;
-        testScore.save((error, score) => {
-          if (error) {
-            res.status(400).json({
-              error: "Unable to insert score for Third round",
-            });
-          }
-          res.status(200).json({
-            score: score.round_three_score,
-            candidate: score.candidate,
+      });
+      break;
+    case "two":
+      TestScore.find({ candidate: id }).exec((error, data) => {
+        if (error) {
+          return res.status(401).json({
+            message:
+              "unable to find candidate, candidate might have failed in first round",
           });
-        });
-      }
-    }
-  );
+        } else {
+          data[0].round_two_score = req.body.score;
+          data[0].total_score = data[0].round_one_score + req.body.score;
+          data[0].save((error, result) => {
+            if (error) {
+              return res.status(400).json({
+                message: "Unable to save score",
+              });
+            }
+            return res.status(200).json({
+              message: "Successfully Updated ",
+            });
+          });
+        }
+      });
+      break;
+    case "three":
+      TestScore.find({ candidate: id }).exec((error, data) => {
+        if (error) {
+          return res.status(401).json({
+            message:
+              "unable to find candidate, candidate might have failed in second round",
+          });
+        } else {
+          data[0].round_three_score = req.body.score;
+          data[0].total_score =
+            data[0].round_one_score + data[0].round_two_score + req.body.score;
+          data[0].save((error, data) => {
+            if (error) {
+              return res.status(400).json({
+                message: "Unable to save score",
+              });
+            }
+            return res.status(200).json({
+              message: "Successfully Updated ",
+            });
+          });
+        }
+      });
+      break;
+
+    default:
+      res.status(400).json({ message: "plese spacify the round" });
+      break;
+  }
 };
 
 exports.getTestSummery = (req, res) => {

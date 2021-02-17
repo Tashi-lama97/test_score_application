@@ -28,15 +28,5 @@ const testScoreSchema = mongoose.Schema({
     required: true,
   },
 });
-testScoreSchema
-  .virtual("round_one")
-  .set(function (round_one) {
-    this._score = round_one;
-    this.round_one_score = round_one;
-    this.total_score = round_one;
-  })
-  .get(function () {
-    return this._score;
-  });
 
 module.exports = mongoose.model("TestScore", testScoreSchema);
