@@ -1,4 +1,5 @@
 const TestScore = require("../models/test_score");
+const Candidate = require("../models/candidate");
 const { validationResult } = require("express-validator");
 
 exports.setScore = (req, res) => {
@@ -11,22 +12,31 @@ exports.setScore = (req, res) => {
 
   switch (round) {
     case "one":
-      let data = {
-        candidate: req.body.candidateId,
-        round_one_score: req.body.score,
-        total_score: req.body.score,
-      };
-      const testScore = new TestScore(data);
-      testScore.save((error, data) => {
-        if (error) {
-          return res.status(400).json({
-            message: "Unable to set score",
+      Candidate.findById(id).exec((error, candidate) => {
+        if (error || !candidate) {
+          return res.status(404).json({
+            error: "Candidate does not exits",
+          });
+        } else {
+          let data = {
+            candidate: req.body.candidateId,
+            round_one_score: req.body.score,
+            total_score: req.body.score,
+          };
+          const testScore = new TestScore(data);
+          testScore.save((error, data) => {
+            if (error) {
+              return res.status(400).json({
+                message: "Unable to set score",
+              });
+            }
+            return res.status(200).json({
+              message: "Score added Successfully",
+            });
           });
         }
-        return res.status(200).json({
-          message: "Score added Successfully",
-        });
       });
+
       break;
     case "two":
       TestScore.find({ candidate: id }).exec((error, data) => {
